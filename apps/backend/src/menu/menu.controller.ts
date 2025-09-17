@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { MenuService } from './menu.service';
 import { MenuItem, MenuModifier } from '@iqra-assistant/shared';
@@ -51,7 +51,13 @@ export class MenuController {
     }
   })
   async getMenu(): Promise<{ items: MenuItem[]; modifiers: MenuModifier[] }> {
-    return this.menuService.getMenu();
+    try {
+      return await this.menuService.getMenu();
+    } catch (error: any) {
+      const message = error?.message || 'Failed to fetch menu from Supabase';
+      // Propagate as 502 so the client can distinguish upstream failure
+      throw new HttpException({ message }, HttpStatus.BAD_GATEWAY);
+    }
   }
 }
 

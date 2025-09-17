@@ -1,12 +1,12 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class SupabaseService implements OnModuleInit {
-  private supabase: SupabaseClient;
+  private supabase: any;
 
-  constructor(private configService: ConfigService) {}
+  constructor(private configService: ConfigService) { }
 
   onModuleInit() {
     const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
@@ -16,10 +16,19 @@ export class SupabaseService implements OnModuleInit {
       throw new Error('Missing Supabase configuration');
     }
 
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+    // Log minimal config for diagnostics (mask key)
+    const maskedKey = `${supabaseKey.substring(0, 6)}…${supabaseKey.substring(supabaseKey.length - 4)}`;
+    // eslint-disable-next-line no-console
+    console.log(`Supabase init → url=${supabaseUrl} key=${maskedKey}`);
+
+    this.supabase = createClient(supabaseUrl, supabaseKey, {
+      global: {
+        headers: { 'X-Client-Info': 'iqra-assistant-backend' },
+      },
+    });
   }
 
-  getClient(): SupabaseClient {
+  getClient(): any {
     return this.supabase;
   }
 
@@ -31,7 +40,11 @@ export class SupabaseService implements OnModuleInit {
       .eq('available', true)
       .order('category', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('Supabase getMenuItems error:', error);
+      throw error;
+    }
     return data;
   }
 
@@ -42,7 +55,11 @@ export class SupabaseService implements OnModuleInit {
       .eq('available', true)
       .order('modifier_group', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error('Supabase getMenuModifiers error:', error);
+      throw error;
+    }
     return data;
   }
 
@@ -143,9 +160,9 @@ export class SupabaseService implements OnModuleInit {
       .not('status', 'eq', 'draft');
 
     if (error) throw error;
-    
+
     if (!data || data.length === 0) return 0;
-    
+
     const total = data.reduce((sum, order) => sum + order.total_amount, 0);
     return total / data.length;
   }
