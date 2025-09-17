@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - FRONTEND_URL=http://localhost:5173
+    env_file:
+      - apps/backend/.env
+    depends_on:
+      - db
+    networks:
+      - iqra-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000
+    env_file:
+      - apps/frontend/.env
+    depends_on:
+      - backend
+    networks:
+      - iqra-network
+
+  # Note: This is a placeholder. In production, you would use Supabase
+  # or configure a local PostgreSQL instance
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=iqra_assistant
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - iqra-network
+
+volumes:
+  postgres_data:
+
+networks:
+  iqra-network:
+    driver: bridge
+
